@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snowflake Warehouse Performance</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
+    <script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+        const { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter } = Recharts;
+        const { Activity, Zap, Clock, DollarSign, TrendingUp, TrendingDown, AlertTriangle, Settings, Play, Pause, RotateCcw, Users, Database } = LucideReact;
+
+        const WarehousesWidget = () => {
+          const [selectedWarehouse, setSelectedWarehouse] = useState('all');
+          const [viewType, setViewType] = useState('table');
+
+          const warehouseData = [
+            { 
+              name: 'PROD_WH', 
+              size: 'Large',
+              cost: 25000, 
+              utilization: 85, 
+              status: 'optimal',
+              queries: 15420,
+              avgRunTime: 45,
+              peakHours: '9-11 AM, 2-4 PM',
+              autoSuspend: '10 min',
+              scaling: 'Auto',
+              users: 45,
+              lastActive: '2 min ago',
+              state: 'running'
+            },
+            { 
+              name: 'DEV_WH', 
+              size: 'Medium',
+              cost: 8000, 
+              utilization: 25, 
+              status: 'underutilized',
+              queries: 2840,
+              avgRunTime: 120,
+              peakHours: '10-12 PM',
+              autoSuspend: '15 min',
+              scaling: 'Manual',
+              users: 12,
+              lastActive: '45 min ago',
+              state: 'suspended'
+            },
+            { 
+              name: 'ANALYTICS_WH', 
+              size: 'X-Large',
+              cost: 18000, 
+              utilization: 92, 
+              status: 'high',
+              queries: 8960,
+              avgRunTime: 180,
+              peakHours: '8-10 AM, 6-8 PM',
+              autoSuspend: '5 min',
+              scaling: 'Auto',
+              users: 8,
+              lastActive: '1 min ago',
+              state: 'running'
+            },
+            { 
+              name: 'TEST_WH', 
+              size: 'Small',
+              cost: 12000, 
+              utilization: 45, 
+              status: 'underutilized',
+              queries: 1200,
+              avgRunTime: 90,
+              peakHours: '2-4 PM',
+              autoSuspend: '20 min',
+              scaling: 'Manual',
+              users: 6,
+              lastActive: '3 hours ago',
+              state: 'suspended'
+            }
+          ];
+
+          const performanceData = [
+            { hour: '00', PROD_WH: 20, DEV_WH: 5, ANALYTICS_WH: 60, TEST_WH: 10 },
+            { hour: '02', PROD_WH: 15, DEV_WH: 2, ANALYTICS_WH: 45, TEST_WH: 5 },
+            { hour: '04', PROD_WH: 10, DEV_WH: 1, ANALYTICS_WH: 30, TEST_WH: 2 },
+            { hour: '06', PROD_WH: 25, DEV_WH: 3, ANALYTICS_WH: 70, TEST_WH: 8 },
+            { hour: '08', PROD_WH: 80, DEV_WH: 15, ANALYTICS_WH: 95, TEST_WH: 25 },
+            { hour: '10', PROD_WH: 95, DEV_WH: 45, ANALYTICS_WH: 98, TEST_WH: 60 },
+            { hour: '12', PROD_WH: 85, DEV_WH: 35, ANALYTICS_WH: 85, TEST_WH: 40 },
+            { hour: '14', PROD_WH: 90, DEV_WH: 25, ANALYTICS_WH: 92, TEST_WH: 65 },
+            { hour: '16', PROD_WH: 75, DEV_WH: 20, ANALYTICS_WH: 88, TEST_WH: 30 },
+            { hour: '18', PROD_WH: 60, DEV_WH: 10, ANALYTICS_WH: 85, TEST_WH: 15 },
+            { hour: '20', PROD_WH: 40, DEV_WH: 8, ANALYTICS_WH: 75, TEST_WH: 12 },
+            { hour: '22', PROD_WH: 30, DEV_WH: 12, ANALYTICS_WH: 65, TEST_WH: 18 }
+          ];
+
+          const costVsPerformanceData = warehouseData.map(wh => ({
+            name: wh.name,
+            cost: wh.cost,
+            utilization: wh.utilization,
+            efficiency: (wh.queries / wh.cost) * 100
+          }));
+
+          const getStatusColor = (status) => {
+            switch(status) {
+              case 'optimal': return 'text-green-800 bg-green-100 border-green-200';
+              case 'high': return 'text-red-800 bg-red-100 border-red-200';
+              default: return 'text-yellow-800 bg-yellow-100 border-yellow-200';
+            }
+          };
+
+          const getStatusIcon = (status) => {
+            switch(status) {
+              case 'optimal': return '✅';
+              case 'high': return '🔥';
+              default: return '⚠️';
+            }
+          };
+
+          const getUtilizationColor = (utilization) => {
+            if (utilization > 90) return 'bg-red-500';
+            if (utilization > 80) return 'bg-yellow-500';
+            if (utilization > 60) return 'bg-blue-500';
+            return 'bg-gray-400';
+          };
+
+          const getSizeColor = (size) => {
+            switch(size) {
+              case 'X-Large': return 'text-red-600 bg-red-50';
+              case 'Large': return 'text-orange-600 bg-orange-50';
+              case 'Medium': return 'text-blue-600 bg-blue-50';
+              default: return 'text-gray-600 bg-gray-50';
+            }
+          };
+
+          const getStateColor = (state) => {
+            return state === 'running' ? 'text-green-600' : 'text-gray-500';
+          };
+
+          const getStateIcon = (state) => {
+            return state === 'running' ? React.createElement(Play, { className: "w-3 h-3" }) : React.createElement(Pause, { className: "w-3 h-3" });
+          };
+
+          const WarehouseCard = ({ warehouse }) => (
+            React.createElement('div', { className: "bg-white border rounded-lg p-6 hover:shadow-lg transition-shadow" },
+              React.createElement('div', { className: "flex items-center justify-between mb-4" },
+                React.createElement('div', { className: "flex items-center space-x-3" },
+                  React.createElement('div', { className: `px-2 py-1 rounded text-xs font-medium ${getSizeColor(warehouse.size)}` }, warehouse.size),
+                  React.createElement('h3', { className: "font-bold text-lg" }, warehouse.name),
+                  React.createElement('div', { className: `flex items-center space-x-1 text-xs ${getStateColor(warehouse.state)}` },
+                    getStateIcon(warehouse.state),
+                    React.createElement('span', null, warehouse.state)
+                  )
+                ),
+                React.createElement('div', { className: `px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(warehouse.status)}` },
+                  `${getStatusIcon(warehouse.status)} ${warehouse.status.charAt(0).toUpperCase() + warehouse.status.slice(1)}`
+                )
+              ),
+              React.createElement('div', { className: "grid grid-cols-2 gap-4 mb-4" },
+                React.createElement('div', null,
+                  React.createElement('div', { className: "text-sm text-gray-600" }, "Monthly Cost"),
+                  React.createElement('div', { className: "text-xl font-bold" }, `$${warehouse.cost.toLocaleString()}`)
+                ),
+                React.createElement('div', null,
+                  React.createElement('div', { className: "text-sm text-gray-600" }, "Utilization"),
+                  React.createElement('div', { className: "flex items-center" },
+                    React.createElement('div', { className: "w-16 bg-gray-200 rounded-full h-2 mr-2" },
+                      React.createElement('div', { 
+                        className: `h-2 rounded-full ${getUtilizationColor(warehouse.utilization)}`,
+                        style: { width: `${warehouse.utilization}%` }
+                      })
+                    ),
+                    React.createElement('span', { className: "text-sm font-medium" }, `${warehouse.utilization}%`)
+                  )
+                )
+              ),
+              React.createElement('div', { className: "grid grid-cols-3 gap-3 mb-4 text-sm" },
+                React.createElement('div', null,
+                  React.createElement('div', { className: "text-gray-600" }, "Queries"),
+                  React.createElement('div', { className: "font-semibold" }, warehouse.queries.toLocaleString())
+                ),
+                React.createElement('div', null,
+                  React.createElement('div', { className: "text-gray-600" }, "Avg Runtime"),
+                  React.createElement('div', { className: "font-semibold" }, `${warehouse.avgRunTime}s`)
+                ),
+                React.createElement('div', null,
+                  React.createElement('div', { className: "text-gray-600" }, "Active Users"),
+                  React.createElement('div', { className: "font-semibold" }, warehouse.users)
+                )
+              ),
+              React.createElement('div', { className: "border-t pt-4" },
+                React.createElement('div', { className: "flex justify-between items-center mb-3 text-sm" },
+                  React.createElement('span', { className: "text-gray-600" }, `Auto-suspend: ${warehouse.autoSuspend}`),
+                  React.createElement('span', { className: "text-gray-600" }, `Last active: ${warehouse.lastActive}`)
+                ),
+                React.createElement('div', { className: "flex space-x-2" },
+                  React.createElement('button', { className: "flex-1 bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700 flex items-center justify-center" },
+                    React.createElement(Settings, { className: "w-4 h-4 mr-1" }),
+                    "Configure"
+                  ),
+                  warehouse.status !== 'optimal' && React.createElement('button', { className: "flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 flex items-center justify-center" },
+                    React.createElement(Zap, { className: "w-4 h-4 mr-1" }),
+                    "Optimize"
+                  )
+                )
+              )
+            )
+          );
+
+          const OptimizationRecommendations = () => {
+            const recommendations = [
+              {
+                warehouse: 'DEV_WH',
+                issue: 'Low Utilization (25%)',
+                recommendation: 'Downsize from Medium to Small',
+                savings: '$3,200/month',
+                effort: 'Low',
+                risk: 'Low'
+              },
+              {
+                warehouse: 'TEST_WH',
+                issue: 'Inefficient Auto-Suspend (20min)',
+                recommendation: 'Reduce auto-suspend to 5 minutes',
+                savings: '$1,800/month',
+                effort: 'Low',
+                risk: 'Very Low'
+              },
+              {
+                warehouse: 'ANALYTICS_WH',
+                issue: 'High Utilization (92%)',
+                recommendation: 'Enable auto-scaling or upgrade size',
+                savings: 'Prevent bottlenecks',
+                effort: 'Medium',
+                risk: 'Low'
+              }
+            ];
+
+            return React.createElement('div', { className: "bg-white border rounded-lg p-6" },
+              React.createElement('h3', { className: "font-semibold text-lg mb-4" }, "Optimization Recommendations"),
+              React.createElement('div', { className: "space-y-4" },
+                recommendations.map((rec, index) =>
+                  React.createElement('div', { key: index, className: "border rounded-lg p-4 bg-gray-50" },
+                    React.createElement('div', { className: "flex justify-between items-start mb-2" },
+                      React.createElement('div', null,
+                        React.createElement('h4', { className: "font-semibold text-blue-900" }, rec.warehouse),
+                        React.createElement('p', { className: "text-sm text-gray-600" }, rec.issue)
+                      ),
+                      React.createElement('div', { className: "text-right" },
+                        React.createElement('div', { className: "text-green-600 font-semibold" }, rec.savings),
+                        React.createElement('div', { className: "text-xs text-gray-500" }, `Risk: ${rec.risk}`)
+                      )
+                    ),
+                    React.createElement('p', { className: "text-sm mb-3" }, rec.recommendation),
+                    React.createElement('button', { className: "bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700" }, "Apply Recommendation")
+                  )
+                )
+              )
+            );
+          };
+
+          return React.createElement('div', { className: "max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen" },
+            React.createElement('div', { className: "mb-6" },
+              React.createElement('h1', { className: "text-2xl font-bold text-gray-900 mb-2" }, "Warehouse Performance"),
+              React.createElement('p', { className: "text-gray-600" }, "Monitor utilization, costs, and optimize warehouse configurations")
+            ),
+
+            // Alert Banner
+            React.createElement('div', { className: "bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6" },
+              React.createElement('div', { className: "flex items-start" },
+                React.createElement(AlertTriangle, { className: "h-5 w-5 text-yellow-400 mt-0.5 mr-2" }),
+                React.createElement('div', null,
+                  React.createElement('h4', { className: "text-yellow-800 font-semibold" }, "Performance Alerts"),
+                  React.createElement('ul', { className: "text-yellow-700 text-sm mt-1 space-y-1" },
+                    React.createElement('li', null, "• ANALYTICS_WH: Running at 92% utilization - consider scaling"),
+                    React.createElement('li', null, "• DEV_WH: Only 25% utilized - potential for downsizing"),
+                    React.createElement('li', null, "• TEST_WH: Auto-suspend set too high (20min) - wasting idle costs")
+                  )
+                )
+              )
+            ),
+
+            // Summary Cards
+            React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-4 gap-6 mb-6" },
+              React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border" },
+                React.createElement('div', { className: "flex items-center justify-between" },
+                  React.createElement('div', null,
+                    React.createElement('p', { className: "text-gray-600 text-sm font-medium" }, "Total Monthly Cost"),
+                    React.createElement('p', { className: "text-2xl font-bold text-gray-900" },
+                      `$${warehouseData.reduce((sum, wh) => sum + wh.cost, 0).toLocaleString()}`
+                    )
+                  ),
+                  React.createElement(DollarSign, { className: "h-8 w-8 text-blue-600" })
+                ),
+                React.createElement('p', { className: "text-sm text-gray-500 mt-2" }, "Across all warehouses")
+              ),
+              React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border" },
+                React.createElement('div', { className: "flex items-center justify-between" },
+                  React.createElement('div', null,
+                    React.createElement('p', { className: "text-gray-600 text-sm font-medium" }, "Avg Utilization"),
+                    React.createElement('p', { className: "text-2xl font-bold text-gray-900" },
+                      `${Math.round(warehouseData.reduce((sum, wh) => sum + wh.utilization, 0) / warehouseData.length)}%`
+                    )
+                  ),
+                  React.createElement(Activity, { className: "h-8 w-8 text-green-600" })
+                ),
+                React.createElement('p', { className: "text-sm text-gray-500 mt-2" }, "Target: 70-85%")
+              ),
+              React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border" },
+                React.createElement('div', { className: "flex items-center justify-between" },
+                  React.createElement('div', null,
+                    React.createElement('p', { className: "text-gray-600 text-sm font-medium" }, "Active Users"),
+                    React.createElement('p', { className: "text-2xl font-bold text-gray-900" },
+                      warehouseData.reduce((sum, wh) => sum + wh.users, 0)
+                    )
+                  ),
+                  React.createElement(Users, { className: "h-8 w-8 text-purple-600" })
+                ),
+                React.createElement('p', { className: "text-sm text-gray-500 mt-2" }, "Currently connected")
+              ),
+              React.createElement('div', { className: "bg-white p-6 rounded-lg shadow-sm border" },
+                React.createElement('div', { className: "flex items-center justify-between" },
+                  React.createElement('div', null,
+                    React.createElement('p', { className: "text-gray-600 text-sm font-medium" }, "Total Queries"),
+                    React.createElement('p', { className: "text-2xl font-bold text-gray-900" },
+                      warehouseData.reduce((sum, wh) => sum + wh.queries, 0).toLocaleString()
+                    )
+                  ),
+                  React.createElement(Database, { className: "h-8 w-8 text-yellow-600" })
+                ),
+                React.createElement('p', { className: "text-sm text-gray-500 mt-2" }, "This month")
+              )
+            ),
+
+            // Main Content
+            React.createElement('div', { className: "bg-white rounded-lg shadow-sm border p-6 mb-6" },
+              React.createElement('div', { className: "flex items-center justify-between mb-6" },
+                React.createElement('h3', { className: "text-lg font-semibold" }, "Warehouse Overview"),
+                React.createElement('div', { className: "flex items-center space-x-3" },
+                  React.createElement('div', { className: "flex bg-gray-100 rounded-lg p-1" },
+                    React.createElement('button', { 
+                      onClick: () => setViewType('table'),
+                      className: `px-3 py-1 rounded text-sm ${viewType === 'table' ? 'bg-white shadow-sm' : ''}`
+                    }, "Table"),
+                    React.createElement('button', { 
+                      onClick: () => setViewType('cards'),
+                      className: `px-3 py-1 rounded text-sm ${viewType === 'cards' ? 'bg-white shadow-sm' : ''}`
+                    }, "Cards"),
+                    React.createElement('button', { 
+                      onClick: () => setViewType('performance'),
+                      className: `px-3 py-1 rounded text-sm ${viewType === 'performance' ? 'bg-white shadow-sm' : ''}`
+                    }, "Performance")
+                  ),
+                  React.createElement('select', {
+                    className: "border rounded px-3 py-2 text-sm",
+                    value: selectedWarehouse,
+                    onChange: (e) => setSelectedWarehouse(e.target.value)
+                  },
+                    React.createElement('option', { value: "all" }, "All Warehouses"),
+                    warehouseData.map(wh => 
+                      React.createElement('option', { key: wh.name, value: wh.name }, wh.name)
+                    )
+                  ),
+                  React.createElement('button', { className: "bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 flex items-center" },
+                    React.createElement(RotateCcw, { className: "w-4 h-4 mr-2" }),
+                    "Auto-Optimize All"
+                  )
+                )
+              ),
+
+              viewType === 'cards' && React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" },
+                warehouseData.map((warehouse) => 
+                  React.createElement(WarehouseCard, { key: warehouse.name, warehouse: warehouse })
+                )
+              ),
+
+              viewType === 'performance' && React.createElement('div', { className: "space-y-6" },
+                React.createElement('div', null,
+                  React.createElement('h4', { className: "font-semibold mb-3" }, "24-Hour Utilization Pattern"),
+                  React.createElement(ResponsiveContainer, { width: "100%", height: 300 },
+                    React.createElement(LineChart, { data: performanceData },
+                      React.createElement(CartesianGrid, { strokeDasharray: "3 3" }),
+                      React.createElement(XAxis, { dataKey: "hour" }),
+                      React.createElement(YAxis, {}),
+                      React.createElement(Tooltip, {}),
+                      React.createElement(Legend, {}),
+                      React.createElement(Line, { type: "monotone", dataKey: "PROD_WH", stroke: "#3b82f6", strokeWidth: 2 }),
+                      React.createElement(Line, { type: "monotone", dataKey: "ANALYTICS_WH", stroke: "#10b981", strokeWidth: 2 }),
+                      React.createElement(Line, { type: "monotone", dataKey: "DEV_WH", stroke: "#f59e0b", strokeWidth: 2 }),
+                      React.createElement(Line, { type: "monotone", dataKey: "TEST_WH", stroke: "#ef4444", strokeWidth: 2 })
+                    )
+                  )
+                )
+              )
+            ),
+
+            React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-2 gap-6" },
+              React.createElement(OptimizationRecommendations),
+              React.createElement('div', { className: "bg-white border rounded-lg p-6" },
+                React.createElement('h3', { className: "font-semibold text-lg mb-4" }, "Performance Insights"),
+                React.createElement('div', { className: "space-y-4" },
+                  React.createElement('div', { className: "p-4 bg-green-50 rounded-lg border-l-4 border-green-400" },
+                    React.createElement('h4', { className: "font-semibold text-green-800" }, "Best Performer"),
+                    React.createElement('p', { className: "text-sm text-green-700" }, "PROD_WH: 85% utilization, optimal performance")
+                  ),
+                  React.createElement('div', { className: "p-4 bg-red-50 rounded-lg border-l-4 border-red-400" },
+                    React.createElement('h4', { className: "font-semibold text-red-800" }, "Needs Attention"),
+                    React.createElement('p', { className: "text-sm text-red-700" }, "ANALYTICS_WH: 92% utilization, consider scaling")
+                  ),
+                  React.createElement('div', { className: "p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-400" },
+                    React.createElement('h4', { className: "font-semibold text-yellow-800" }, "Optimization Opportunity"),
+                    React.createElement('p', { className: "text-sm text-yellow-700" }, "DEV_WH: Only 25% utilized, downsize to save $3.2K/month")
+                  )
+                )
+              )
+            )
+          );
+        };
+
+        ReactDOM.render(React.createElement(WarehousesWidget), document.getElementById('root'));
+    </script>
+</body>
+</html>
